@@ -111,16 +111,30 @@ Respond with clear explanations and include code in ```python blocks."""
     def _fallback_response(self, message: str, error: str) -> ChatMessage:
         """Generate fallback response when LLM is unavailable."""
         
-        # Try to use patterns
-        patterns = st.session_state.pattern_learner.find_similar(message)
+        # Try to use pattern library
+        pattern_learner = st.session_state.get("pattern_learner")
         
-        if patterns:
-            best = patterns[0]
-            return ChatMessage(
-                role="assistant",
-                content=f"I found a similar pattern that might help:\n\n{best.get('description', '')}",
-                code=best.get("code", ""),
-            )
+        if pattern_learner:
+            # Use find_matching_patterns for better results
+            matches = pattern_learner.find_matching_patterns(message, limit=3)
+            
+            if matches:
+                if len(matches) == 1:
+                    pattern = matches[0]
+                    return ChatMessage(
+                        role="assistant",
+                        content=f"I found a pattern that might help: **{pattern.get('name', 'pattern')}**",
+                        code=pattern.get("template", ""),
+                    )
+                else:
+                    # Multiple matches - combine them
+                    combined_code = self._combine_patterns(matches)
+                    pattern_names = ", ".join([m.get("name", "") for m in matches])
+                    return ChatMessage(
+                        role="assistant",
+                        content=f"I found {len(matches)} matching patterns ({pattern_names}). Here's a combined template:",
+                        code=combined_code,
+                    )
         
         # Generic fallback
         return ChatMessage(
@@ -164,6 +178,38 @@ with st.sidebar:
 
 st.write(f"You selected: {option}")""",
         )
+    
+    def _combine_patterns(self, patterns: list) -> str:
+        """Combine multiple patterns into a cohesive application."""
+        imports = set(["import streamlit as st"])
+        code_blocks = []
+        
+        for pattern in patterns:
+            template = pattern.get("template", "")
+            # Extract imports
+            for line in template.split("\n"):
+                if line.startswith("import ") or line.startswith("from "):
+                    imports.add(line)
+            
+            # Get the main code (skip imports)
+            code_lines = []
+            for line in template.split("\n"):
+                if not (line.startswith("import ") or line.startswith("from ")):
+                    code_lines.append(line)
+            
+            code_blocks.append("\n".join(code_lines).strip())
+        
+        # Build combined code
+        result = "# Generated Streamlit Application\n\n"
+        result += "\n".join(sorted(imports)) + "\n\n"
+        result += 'st.set_page_config(page_title="My App", page_icon="🚀", layout="wide")\n\n'
+        result += 'st.title("My Streamlit App")\n\n'
+        
+        for i, block in enumerate(code_blocks):
+            if block and not block.startswith("st.set_page_config"):
+                result += f"# Section {i+1}\n{block}\n\n"
+        
+        return result.strip()
     
     def clear_history(self):
         """Clear conversation history."""

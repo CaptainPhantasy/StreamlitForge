@@ -120,6 +120,42 @@ def render():
                     km.set("google", key)
                     st.success("Saved!")
                     st.rerun()
+        
+        st.divider()
+        
+        # OpenRouter
+        with st.container(border=True):
+            st.markdown("### 🔀 OpenRouter")
+            st.caption("Unified API for 100+ models (OpenAI, Anthropic, Google, Meta, Mistral, etc.)")
+            current = km.get("openrouter")
+            if current:
+                st.caption(f"Current: {current[:8]}...{current[-4:]}")
+            
+            key = st.text_input("OpenRouter API Key", type="password", placeholder="sk-or-...", key="openrouter_key")
+            if st.button("Save", key="save_openrouter"):
+                if key:
+                    km.set("openrouter", key)
+                    st.success("Saved!")
+                    st.rerun()
+        
+        st.divider()
+        
+        # OpenCode
+        with st.container(border=True):
+            st.markdown("### 🧠 OpenCode (Zen & Go)")
+            st.caption("Access to Claude, GPT-5, Gemini 3, DeepSeek, and FREE models")
+            current = km.get("opencode")
+            if current:
+                st.caption(f"Current: {current[:8]}...{current[-4:]}")
+            
+            key = st.text_input("OpenCode API Key", type="password", placeholder="oc_...", key="opencode_key")
+            if st.button("Save", key="save_opencode"):
+                if key:
+                    km.set("opencode", key)
+                    st.success("Saved!")
+                    st.rerun()
+            
+            st.caption("Free models available: minimax-m2.5-free, big-pickle, gpt-5-nano")
     
     with tab_general:
         st.subheader("General Settings")
@@ -152,10 +188,10 @@ def render():
         
         default_provider = st.selectbox(
             "Default Provider",
-            ["ollama", "openai", "anthropic", "groq", "google"],
-            index=["ollama", "openai", "anthropic", "groq", "google"].index(
+            ["ollama", "openai", "anthropic", "groq", "google", "openrouter", "opencode"],
+            index=["ollama", "openai", "anthropic", "groq", "google", "openrouter", "opencode"].index(
                 current_settings.get("default_provider", "ollama")
-            ),
+            ) if current_settings.get("default_provider") in ["ollama", "openai", "anthropic", "groq", "google", "openrouter", "opencode"] else 0,
         )
         
         default_model = st.text_input(

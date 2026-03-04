@@ -37,6 +37,8 @@ def render():
         ("google", "🔵", "Free Tier", bool(km.get("google"))),
         ("mistral", "🟠", "Paid", bool(km.get("mistral"))),
         ("deepseek", "🔷", "Low Cost", bool(km.get("deepseek"))),
+        ("openrouter", "🔀", "Aggregator", bool(km.get("openrouter"))),
+        ("opencode", "🧠", "Free Tier", bool(km.get("opencode"))),
     ]
     
     cols = st.columns(len(all_providers))
@@ -188,12 +190,21 @@ def render():
     # Pricing Reference
     with st.expander("💰 Pricing Reference (per 1M tokens)"):
         pricing_data = {
-            "Provider": ["OpenAI GPT-4o", "OpenAI GPT-4o-mini", "Anthropic Claude", "Groq Llama", "Google Gemini", "DeepSeek"],
-            "Input": ["$2.50", "$0.15", "$3.00", "Free*", "Free*", "$0.14"],
-            "Output": ["$10.00", "$0.60", "$15.00", "Free*", "Free*", "$0.28"],
+            "Provider": [
+                "OpenAI GPT-4o", 
+                "OpenAI GPT-4o-mini", 
+                "Anthropic Claude", 
+                "Groq Llama", 
+                "Google Gemini", 
+                "DeepSeek",
+                "OpenRouter (varies)",
+                "OpenCode Zen",
+            ],
+            "Input": ["$2.50", "$0.15", "$3.00", "Free*", "Free*", "$0.14", "$0.15+", "FREE tiers"],
+            "Output": ["$10.00", "$0.60", "$15.00", "Free*", "Free*", "$0.28", "$0.60+", "FREE tiers"],
         }
         st.dataframe(pd.DataFrame(pricing_data), use_container_width=True, hide_index=True)
-        st.caption("*Free tier with rate limits")
+        st.caption("*Free tier with rate limits. OpenRouter/OpenCode aggregate multiple providers.")
     
     st.divider()
     
@@ -251,6 +262,27 @@ def initialize_router(km) -> "EnhancedLLMRouter":
         except Exception:
             pass
     
+    if km.get("google"):
+        try:
+            from streamlitforge.llm.providers.google import GoogleProvider
+            providers["google"] = GoogleProvider(api_key=km.get("google"))
+        except Exception:
+            pass
+    
+    if km.get("openrouter"):
+        try:
+            from streamlitforge.llm.providers.openrouter import OpenRouterProvider
+            providers["openrouter"] = OpenRouterProvider(api_key=km.get("openrouter"))
+        except Exception:
+            pass
+    
+    if km.get("opencode"):
+        try:
+            from streamlitforge.llm.providers.opencode import OpenCodeZenProvider
+            providers["opencode"] = OpenCodeZenProvider(api_key=km.get("opencode"))
+        except Exception:
+            pass
+    
     return EnhancedLLMRouter(providers=providers)
 
 
@@ -278,6 +310,30 @@ def get_provider_models(provider: str) -> list:
         "google": ["gemini-pro", "gemini-pro-vision"],
         "mistral": ["mistral-large", "mistral-medium", "mistral-small"],
         "deepseek": ["deepseek-coder", "deepseek-chat"],
+        "openrouter": [
+            "openai/gpt-4o-mini",
+            "openai/gpt-4o",
+            "anthropic/claude-3.5-sonnet",
+            "anthropic/claude-3-opus",
+            "google/gemini-pro-1.5",
+            "meta-llama/llama-3.1-70b-instruct",
+            "mistralai/mistral-large",
+            "deepseek/deepseek-chat",
+        ],
+        "opencode": [
+            "claude-sonnet-4-6",
+            "claude-opus-4-6",
+            "claude-haiku-4",
+            "gpt-5-turbo",
+            "gpt-5",
+            "gemini-3-pro",
+            "gemini-3-flash",
+            "qwen3-coder",
+            "deepseek-r1",
+            "minimax-m2.5-free",
+            "big-pickle",
+            "gpt-5-nano",
+        ],
     }
     return models.get(provider, ["default"])
 

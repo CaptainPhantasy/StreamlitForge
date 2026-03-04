@@ -58,14 +58,18 @@ def render_dashboard():
     col1, col2, col3, col4 = st.columns(4)
     projects = st.session_state.project_manager.list_projects()
     configured = st.session_state.api_key_manager.list_configured()
-    patterns = st.session_state.pattern_learner.get_pattern_count()
+    
+    # Get pattern counts
+    pattern_learner = st.session_state.pattern_learner
+    builtin_patterns = pattern_learner.get_builtin_pattern_count() if hasattr(pattern_learner, 'get_builtin_pattern_count') else 0
+    total_patterns = pattern_learner.get_pattern_count()
     
     with col1:
         st.metric("Projects", len(projects))
     with col2:
         st.metric("AI Providers", len(configured))
     with col3:
-        st.metric("Learned Patterns", patterns)
+        st.metric("Patterns", f"{total_patterns}", f"{builtin_patterns} built-in")
     with col4:
         st.metric("Status", "Ready")
     
@@ -78,7 +82,7 @@ def render_dashboard():
             st.session_state.active_tab = "📁 Projects"
             st.rerun()
     with col2:
-        if st.button("🤖 Start Building", use_container_width=True):
+        if st.button("🚀 Start Building", use_container_width=True, type="primary"):
             st.session_state.active_tab = "🤖 AI Builder"
             st.rerun()
     with col3:
@@ -118,7 +122,7 @@ def render_dashboard():
     st.divider()
     
     st.subheader("LLM Provider Status")
-    all_providers = ["openai", "anthropic", "groq", "google", "ollama"]
+    all_providers = ["openai", "anthropic", "groq", "google", "ollama", "openrouter", "opencode"]
     cols = st.columns(len(all_providers))
     for idx, provider in enumerate(all_providers):
         with cols[idx]:

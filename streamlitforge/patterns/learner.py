@@ -6,15 +6,62 @@ import re
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+import importlib.resources
+
+
+# Built-in pattern files to load on initialization
+BUILTIN_PATTERN_FILES = [
+    "streamlit_components.json",
+    "charts.json",
+    "forms.json",
+    "layouts.json",
+    "data_handlers.json",
+]
 
 
 class PatternLearner:
-    """Learns patterns from successful code generations for offline use."""
+    """Learns patterns from successful code generations for offline use.
+    
+    On initialization, loads built-in patterns from streamlitforge/patterns/*.json
+    and combines them with user-learned patterns from ~/.streamlitforge/patterns/
+    """
 
     def __init__(self, library_path: str = None, min_examples: int = 3):
         self.library_path = Path(library_path or Path.home() / ".streamlitforge" / "patterns")
         self.min_examples = min_examples
         self.library_path.mkdir(parents=True, exist_ok=True)
+        
+        # In-memory pattern cache loaded from built-in JSON files
+        self._builtin_patterns: Dict[str, Dict[str, Any]] = {}
+        self._load_builtin_patterns()
+    
+    def _load_builtin_patterns(self):
+        """Load built-in patterns from streamlitforge/patterns/*.json"""
+        patterns_dir = Path(__file__).parent
+        
+        for pattern_file in BUILTIN_PATTERN_FILES:
+            filepath = patterns_dir / pattern_file
+            if filepath.exists():
+                try:
+                    data = json.loads(filepath.read_text())
+                    for pattern_id, pattern_data in data.items():
+                        # Store with full metadata
+                        self._builtin_patterns[pattern_id] = {
+                            "pattern_id": pattern_id,
+                            "source": "builtin",
+                            "name": pattern_data.get("name", pattern_id.replace("_", " ").title()),
+                            "triggers": pattern_data.get("triggers", []),
+                            "template": pattern_data.get("template", ""),
+                            "variables": pattern_data.get("variables", {}),
+                            "examples": pattern_data.get("examples", []),
+                            "usage_count": 0,
+                        }
+                except (json.JSONDecodeError, OSError) as e:
+                    print(f"Warning: Could not load pattern file {filepath}: {e}")
+    
+    def get_builtin_pattern_count(self) -> int:
+        """Return number of built-in patterns loaded."""
+        return len(self._builtin_patterns)
 
     def record_success(
         self,
@@ -114,13 +161,99 @@ class PatternLearner:
         filepath.write_text(json.dumps(pattern, indent=2))
 
     def find_pattern(self, query: str) -> Optional[str]:
+        """Find a matching pattern for the query.
+        
+        Searches built-in patterns first, then user-learned patterns.
+        Returns the template code if found, None otherwise.
+        """
+        # First search built-in patterns
+        builtin_match = self._search_patterns(query, self._builtin_patterns)
+        if builtin_match:
+            return builtin_match.get("template", "")
+        
+        # Then search user-learned patterns
         match = self._find_similar_pattern(query)
         if match:
             return match.get("template", "")
+        
         return None
+    
+    def find_matching_patterns(self, query: str, limit: int = 5) -> List[Dict[str, Any]]:
+        """Find all matching patterns for a query, returning multiple results.
+        
+        Useful for showing options or combining patterns.
+        """
+        results = []
+        query_lower = query.lower()
+        query_words = set(query_lower.split())
+        
+        # Search built-in patterns
+        for pattern_id, pattern in self._builtin_patterns.items():
+            triggers = set(t.lower() for t in pattern.get("triggers", []))
+            intersection = query_words & triggers
+            if intersection:
+                score = len(intersection) / max(len(triggers), 1)
+                results.append({**pattern, "score": score, "source": "builtin"})
+        
+        # Search user patterns
+        for filepath in self.library_path.glob("pattern_*.json"):
+            try:
+                pattern = json.loads(filepath.read_text())
+                triggers = set(t.lower() for t in pattern.get("triggers", []))
+                intersection = query_words & triggers
+                if intersection:
+                    score = len(intersection) / max(len(triggers), 1)
+                    results.append({**pattern, "score": score, "source": "user"})
+            except (json.JSONDecodeError, OSError):
+                continue
+        
+        # Sort by score and return top results
+        results.sort(key=lambda x: x.get("score", 0), reverse=True)
+        return results[:limit]
+    
+    def _search_patterns(self, query: str, patterns: Dict[str, Dict]) -> Optional[Dict]:
+        """Search a dictionary of patterns for a query match."""
+        query_lower = query.lower()
+        query_words = set(query_lower.split())
+        
+        best_match = None
+        best_score = 0.0
+        
+        for pattern_id, pattern in patterns.items():
+            triggers = set(t.lower() for t in pattern.get("triggers", []))
+            
+            # Check for trigger word matches
+            intersection = query_words & triggers
+            if triggers:
+                score = len(intersection) / len(triggers)
+                if score > best_score:
+                    best_score = score
+                    best_match = pattern
+            
+            # Also check if pattern name appears in query
+            name = pattern.get("name", "").lower()
+            if name and name in query_lower:
+                if 0.5 > best_score:  # Name match is good but trigger match is better
+                    best_score = 0.5
+                    best_match = pattern
+        
+        return best_match if best_score > 0.2 else None
 
     def list_patterns(self) -> List[Dict[str, Any]]:
+        """List all patterns - both built-in and user-learned."""
         patterns = []
+        
+        # Add built-in patterns
+        for pattern_id, pattern in self._builtin_patterns.items():
+            patterns.append({
+                "pattern_id": pattern_id,
+                "name": pattern.get("name", pattern_id),
+                "triggers": pattern.get("triggers", []),
+                "usage_count": pattern.get("usage_count", 0),
+                "source": "builtin",
+            })
+        
+        # Add user patterns
         for filepath in sorted(self.library_path.glob("pattern_*.json")):
             try:
                 p = json.loads(filepath.read_text())
@@ -129,10 +262,13 @@ class PatternLearner:
                     "name": p.get("name"),
                     "triggers": p.get("triggers", []),
                     "usage_count": p.get("usage_count", 0),
+                    "source": "user",
                 })
             except (json.JSONDecodeError, OSError):
                 continue
         return patterns
 
     def get_pattern_count(self) -> int:
-        return len(list(self.library_path.glob("pattern_*.json")))
+        """Total pattern count including built-in patterns."""
+        user_count = len(list(self.library_path.glob("pattern_*.json")))
+        return user_count + len(self._builtin_patterns)
