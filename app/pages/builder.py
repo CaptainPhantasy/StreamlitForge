@@ -323,10 +323,19 @@ def render():
                         with st.expander("View Generated Code"):
                             st.code(msg.code, language="python")
         
-        # Chat input
-        default_prompt = st.session_state.pop("example_prompt", "")
-        if prompt := st.chat_input("Describe what you want to build...", default=default_prompt):
-            # Add user message
+        # Chat input - handle example prompts via session state
+        chat_placeholder = st.session_state.pop("example_prompt", "")
+        prompt = st.chat_input("Describe what you want to build...")
+        
+        # If no input but we have an example prompt, use it
+        if not prompt and chat_placeholder:
+            prompt = chat_placeholder
+        
+        if prompt:
+            # Add user message to history
+            agent.history.append(ChatMessage(role="user", content=prompt))
+            
+            # Add user message to display
             with chat_container:
                 with st.chat_message("user"):
                     st.markdown(prompt)
@@ -375,6 +384,10 @@ def render():
                             st.session_state.generated_code = code
                             with st.expander("View Generated Code", expanded=True):
                                 st.code(code, language="python")
+                        
+                        # Add assistant response to history (if not already added by agent.chat)
+                        if use_streaming:
+                            agent.history.append(ChatMessage(role="assistant", content=response_text, code=code))
     
     with col_code:
         st.subheader("📝 Code Preview")
@@ -418,15 +431,77 @@ def render():
                 st.caption("Select a project first")
         
         with col3:
-            # Copy to clipboard
-            if st.button("📋 Copy Code", use_container_width=True):
-                st.code(edited_code, language="python")
-                st.success("Code displayed above - select and copy!")
+            # Download code as file (reliable way to "copy")
+            st.download_button(
+                label="📋 Download Code",
+                data=edited_code,
+                file_name="app.py",
+                mime="text/x-python",
+                use_container_width=True,
+            )
         
         with col4:
             if st.button("🔄 Reset", use_container_width=True):
                 st.session_state.generated_code = get_default_template()
                 st.rerun()
+        
+        # Quick Run - run code without needing a project
+        st.divider()
+        st.subheader("🚀 Test Your Code")
+        
+        if st.button("▶️ Run in Test Environment", type="primary", use_container_width=True):
+            # Save to temp file and run
+            import tempfile
+            import subprocess
+            import time
+            
+            # Create temp directory for the test app
+            test_dir = Path(tempfile.gettempdir()) / "streamlitforge_test"
+            test_dir.mkdir(exist_ok=True)
+            
+            # Use timestamp to create unique test app
+            timestamp = int(time.time())
+            test_file = test_dir / f"test_app_{timestamp}.py"
+            
+            # Write the code
+            test_file.write_text(edited_code)
+            
+            # Use PortManager to get an available port
+            port_manager = st.session_state.port_manager
+            test_port = port_manager.get_port(str(test_file))
+            
+            # Find streamlit executable
+            streamlit_path = "/Users/douglastalley/.local/bin/streamlit"
+            
+            # Run the test app on the assigned port
+            try:
+                proc = subprocess.Popen(
+                    [streamlit_path, "run", str(test_file), "--server.port", str(test_port)],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
+                st.success(f"✅ Test app running!")
+                st.markdown(f"**[Open Test App on Port {test_port} →](http://localhost:{test_port})**")
+                st.caption(f"PID: {proc.pid} | Port: {test_port} | File: `{test_file.name}`")
+            except Exception as e:
+                st.error(f"Failed to run: {e}")
+        
+        # Show currently running test apps
+        running_ports = st.session_state.port_manager.list_ports()
+        if running_ports:
+            with st.expander(f"📊 Running Apps ({len(running_ports)})", expanded=False):
+                for port_str, entry in running_ports.items():
+                    col1, col2, col3 = st.columns([2, 2, 1])
+                    with col1:
+                        st.markdown(f"**[Port {port_str}](http://localhost:{port_str})**")
+                    with col2:
+                        st.caption(entry.get("project_name", "Unknown")[:30])
+                    with col3:
+                        if st.button("❌", key=f"kill_{port_str}"):
+                            st.session_state.port_manager.release_port(entry.get("project_path", ""))
+                            st.rerun()
+        
+        st.caption("⚠️ Note: Test apps need required packages (like `requests`, `beautifulsoup4`) installed.")
         
         # File browser (only if project exists)
         if project:
@@ -476,9 +551,17 @@ def generate_streaming_response(prompt: str, context: str, mode: str):
     from streamlitforge.llm.router import EnhancedLLMRouter
     from streamlitforge.llm.base import Message, MessageRole
     
-    # Get configured router
+    # Ensure router is initialized
     router = st.session_state.get("llm_router")
     if not router:
+        # Try to initialize router
+        try:
+            router = _initialize_router()
+            st.session_state.llm_router = router
+        except Exception as e:
+            router = None
+    
+    if not router or not router.providers:
         # Try to get response from pattern library
         pattern_learner = st.session_state.get("pattern_learner")
         if pattern_learner:
@@ -494,7 +577,7 @@ def generate_streaming_response(prompt: str, context: str, mode: str):
                     yield f"I found {len(matches)} matching patterns ({names}). Here's a combined template:\n\n```python\n{combined}\n```"
                     return
         
-        yield "⚠️ No LLM provider configured. Go to Settings to add an API key, or describe what you need and I'll try to find a matching pattern."
+        yield "⚠️ No LLM provider available. Go to **Settings** to add an API key, or describe what you need and I'll try to find a matching pattern."
         return
     
     provider_name = st.session_state.get("selected_provider", "ollama")
@@ -502,7 +585,16 @@ def generate_streaming_response(prompt: str, context: str, mode: str):
     provider = router.providers.get(provider_name)
     
     if not provider:
-        yield f"Provider {provider_name} not configured. Please set up the API key in Settings."
+        # Fallback to pattern library if provider not found
+        pattern_learner = st.session_state.get("pattern_learner")
+        if pattern_learner:
+            matches = pattern_learner.find_matching_patterns(prompt, limit=3)
+            if matches:
+                combined = _combine_patterns(matches)
+                yield f"Provider **{provider_name}** not configured. I found a pattern that might help:\n\n```python\n{combined}\n```"
+                return
+        
+        yield f"⚠️ Provider **{provider_name}** not configured. Go to **Settings** to set up the API key."
         return
     
     # Build system prompt based on mode
@@ -528,8 +620,48 @@ when appropriate."""
     try:
         for chunk in provider.generate_stream(messages, model=model):
             yield chunk
+    except IndexError as e:
+        # Specific handling for index errors
+        yield f"\n\n⚠️ Response interrupted. The AI response may be incomplete."
     except Exception as e:
-        yield f"\n\n[Error: {e}]"
+        yield f"\n\n⚠️ Error: {str(e)}"
+
+
+def _initialize_router():
+    """Initialize the LLM router with available providers."""
+    from streamlitforge.llm.router import EnhancedLLMRouter
+    from streamlitforge.core.api_keys import APIKeyManager
+    
+    km = APIKeyManager()
+    providers = {}
+    
+    # Always try to add Ollama
+    try:
+        from streamlitforge.llm.providers.ollama import OllamaProvider
+        providers["ollama"] = OllamaProvider()
+    except Exception:
+        pass
+    
+    # Add other providers if configured
+    provider_configs = [
+        ("openai", "streamlitforge.llm.providers.openai", "OpenAIProvider"),
+        ("anthropic", "streamlitforge.llm.providers.anthropic", "AnthropicProvider"),
+        ("groq", "streamlitforge.llm.providers.groq", "GroqProvider"),
+        ("openrouter", "streamlitforge.llm.providers.openrouter", "OpenRouterProvider"),
+        ("opencode", "streamlitforge.llm.providers.opencode", "OpenCodeZenProvider"),
+    ]
+    
+    for key_name, module_path, class_name in provider_configs:
+        if km.get(key_name):
+            try:
+                import importlib
+                module = importlib.import_module(module_path)
+                provider_class = getattr(module, class_name)
+                providers[key_name] = provider_class(api_key=km.get(key_name))
+            except Exception:
+                pass
+    
+    return EnhancedLLMRouter(providers=providers)
 
 
 def extract_code_from_response(response: str) -> str:
