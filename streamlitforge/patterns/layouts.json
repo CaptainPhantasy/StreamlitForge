@@ -1,0 +1,18 @@
+{
+  "sidebar_layout": {
+    "triggers": ["sidebar", "navigation", "menu", "layout"],
+    "template": "import streamlit as st\n\nst.set_page_config(layout='wide')\n\nwith st.sidebar:\n    st.title('Navigation')\n    page = st.radio('Go to', ['Home', 'Data', 'Settings'])\n\nif page == 'Home':\n    st.title('Home Page')\nelif page == 'Data':\n    st.title('Data Page')\nelse:\n    st.title('Settings Page')\n"
+  },
+  "tabs_layout": {
+    "triggers": ["tabs", "tab", "sections", "organize"],
+    "template": "import streamlit as st\n\ntab1, tab2, tab3 = st.tabs(['Overview', 'Details', 'Settings'])\n\nwith tab1:\n    st.header('Overview')\n    st.write('Overview content here')\n\nwith tab2:\n    st.header('Details')\n    st.write('Details content here')\n\nwith tab3:\n    st.header('Settings')\n    st.write('Settings content here')\n"
+  },
+  "columns_layout": {
+    "triggers": ["columns", "grid", "side_by_side", "parallel"],
+    "template": "import streamlit as st\n\ncol1, col2, col3 = st.columns(3)\n\nwith col1:\n    st.metric('Metric 1', '42', '+3')\n\nwith col2:\n    st.metric('Metric 2', '128', '-5')\n\nwith col3:\n    st.metric('Metric 3', '95%', '+2%')\n"
+  },
+  "dashboard_layout": {
+    "triggers": ["dashboard", "overview", "metrics", "kpi"],
+    "template": "import streamlit as st\nimport pandas as pd\nimport numpy as np\n\nst.set_page_config(page_title='Dashboard', layout='wide')\nst.title('Dashboard')\n\ncol1, col2, col3, col4 = st.columns(4)\nwith col1:\n    st.metric('Users', '1,234', '+12%')\nwith col2:\n    st.metric('Revenue', '$45K', '+8%')\nwith col3:\n    st.metric('Orders', '567', '+5%')\nwith col4:\n    st.metric('Satisfaction', '4.5/5', '+0.2')\n\nst.divider()\nchart_data = pd.DataFrame(np.random.randn(30, 3), columns=['Sales', 'Revenue', 'Users'])\nst.line_chart(chart_data)\n"
+  }
+}

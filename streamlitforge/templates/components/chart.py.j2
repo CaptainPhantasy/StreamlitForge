@@ -1,0 +1,23 @@
+"""Streamlit Chart Component — {{ component_name }}"""
+import streamlit as st
+import pandas as pd
+
+
+def render_{{ component_name }}(data: pd.DataFrame):
+    """Render a {{ chart_type | default('line') }} chart."""
+    st.subheader("{{ title | default('Chart') }}")
+
+    {% if chart_type == 'bar' %}
+    st.bar_chart(data)
+    {% elif chart_type == 'area' %}
+    st.area_chart(data)
+    {% elif chart_type == 'scatter' %}
+    st.scatter_chart(data)
+    {% else %}
+    st.line_chart(data)
+    {% endif %}
+
+    {% if show_data %}
+    with st.expander("View Data"):
+        st.dataframe(data)
+    {% endif %}

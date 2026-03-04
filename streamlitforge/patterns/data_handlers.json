@@ -1,0 +1,14 @@
+{
+  "load_csv": {
+    "triggers": ["csv", "load", "read", "pandas", "data"],
+    "template": "import pandas as pd\nimport streamlit as st\n\n@st.cache_data\ndef load_data(filepath):\n    return pd.read_csv(filepath)\n\ndata = load_data('data.csv')\nst.dataframe(data)\n"
+  },
+  "database_connection": {
+    "triggers": ["database", "sql", "sqlite", "connect", "query"],
+    "template": "import sqlite3\nimport pandas as pd\nimport streamlit as st\n\n@st.cache_resource\ndef get_connection():\n    return sqlite3.connect('database.db', check_same_thread=False)\n\nconn = get_connection()\ndata = pd.read_sql('SELECT * FROM table_name', conn)\nst.dataframe(data)\n"
+  },
+  "api_fetch": {
+    "triggers": ["api", "fetch", "request", "json", "rest"],
+    "template": "import requests\nimport streamlit as st\n\n@st.cache_data(ttl=300)\ndef fetch_data(url):\n    response = requests.get(url)\n    return response.json()\n\ndata = fetch_data('https://api.example.com/data')\nst.json(data)\n"
+  }
+}

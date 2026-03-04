@@ -1,0 +1,35 @@
+"""Streamlit Table Component — {{ component_name }}"""
+import streamlit as st
+import pandas as pd
+
+
+def render_{{ component_name }}(data: pd.DataFrame):
+    """Render a data table with search and export capabilities."""
+    st.subheader("{{ title | default('Data Table') }}")
+
+    {% if enable_search %}
+    search = st.text_input("Search", key="{{ component_name }}_search")
+    if search:
+        mask = data.astype(str).apply(lambda x: x.str.contains(search, case=False)).any(axis=1)
+        data = data[mask]
+    {% endif %}
+
+    {% if enable_pagination %}
+    page_size = st.selectbox("Rows per page", [10, 25, 50, 100], key="{{ component_name }}_page_size")
+    total_pages = max(1, len(data) // page_size + (1 if len(data) % page_size else 0))
+    page = st.number_input("Page", min_value=1, max_value=total_pages, value=1, key="{{ component_name }}_page")
+    start_idx = (page - 1) * page_size
+    data = data.iloc[start_idx:start_idx + page_size]
+    {% endif %}
+
+    st.dataframe(data, use_container_width=True)
+
+    {% if enable_export %}
+    col1, col2 = st.columns(2)
+    with col1:
+        csv = data.to_csv(index=False)
+        st.download_button("Download CSV", csv, "data.csv", "text/csv", key="{{ component_name }}_csv")
+    with col2:
+        json_data = data.to_json(orient="records")
+        st.download_button("Download JSON", json_data, "data.json", "application/json", key="{{ component_name }}_json")
+    {% endif %}

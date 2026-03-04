@@ -1,0 +1,6 @@
+MANIFEST.in
+LICENSE
+README.md
+pyproject.toml
+requirements.txt
+requirements-dev.txt

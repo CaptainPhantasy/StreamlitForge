@@ -1,0 +1,22 @@
+{
+  "line_chart": {
+    "triggers": ["line", "chart", "trend", "time_series"],
+    "template": "import streamlit as st\nimport pandas as pd\nimport numpy as np\n\nst.subheader('Line Chart')\nchart_data = pd.DataFrame(np.random.randn(20, 3), columns=['A', 'B', 'C'])\nst.line_chart(chart_data)\n"
+  },
+  "bar_chart": {
+    "triggers": ["bar", "chart", "comparison", "category"],
+    "template": "import streamlit as st\nimport pandas as pd\nimport numpy as np\n\nst.subheader('Bar Chart')\nchart_data = pd.DataFrame({'Category': ['A', 'B', 'C', 'D'], 'Value': [10, 25, 15, 30]})\nst.bar_chart(chart_data.set_index('Category'))\n"
+  },
+  "area_chart": {
+    "triggers": ["area", "chart", "stacked", "filled"],
+    "template": "import streamlit as st\nimport pandas as pd\nimport numpy as np\n\nst.subheader('Area Chart')\nchart_data = pd.DataFrame(np.random.randn(20, 3), columns=['A', 'B', 'C'])\nst.area_chart(chart_data)\n"
+  },
+  "scatter_chart": {
+    "triggers": ["scatter", "plot", "correlation", "points"],
+    "template": "import streamlit as st\nimport pandas as pd\nimport numpy as np\n\nst.subheader('Scatter Chart')\ndf = pd.DataFrame({'x': np.random.randn(100), 'y': np.random.randn(100)})\nst.scatter_chart(df)\n"
+  },
+  "map_chart": {
+    "triggers": ["map", "location", "geographic", "latitude", "longitude"],
+    "template": "import streamlit as st\nimport pandas as pd\nimport numpy as np\n\nst.subheader('Map')\ndf = pd.DataFrame(np.random.randn(100, 2) / [50, 50] + [37.76, -122.4], columns=['lat', 'lon'])\nst.map(df)\n"
+  }
+}

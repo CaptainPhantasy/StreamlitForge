@@ -1,0 +1,18 @@
+{
+  "data_table": {
+    "triggers": ["table", "data", "dataframe", "display", "show"],
+    "template": "import streamlit as st\nimport pandas as pd\n\nst.subheader('Data Table')\ndata = pd.DataFrame({'Column A': [1, 2, 3], 'Column B': ['x', 'y', 'z']})\nst.dataframe(data, use_container_width=True)\n"
+  },
+  "data_editor": {
+    "triggers": ["edit", "editable", "data_editor", "modify"],
+    "template": "import streamlit as st\nimport pandas as pd\n\nst.subheader('Editable Data')\ndata = pd.DataFrame({'Name': ['Alice', 'Bob'], 'Score': [90, 85]})\nedited = st.data_editor(data, num_rows='dynamic')\nst.write('Updated data:', edited)\n"
+  },
+  "file_uploader": {
+    "triggers": ["upload", "file", "csv", "import"],
+    "template": "import streamlit as st\nimport pandas as pd\n\nst.subheader('File Upload')\nuploaded = st.file_uploader('Choose a CSV file', type='csv')\nif uploaded is not None:\n    data = pd.read_csv(uploaded)\n    st.dataframe(data)\n"
+  },
+  "download_button": {
+    "triggers": ["download", "export", "save"],
+    "template": "import streamlit as st\nimport pandas as pd\n\ndata = pd.DataFrame({'A': [1, 2], 'B': [3, 4]})\ncsv = data.to_csv(index=False)\nst.download_button('Download CSV', csv, 'data.csv', 'text/csv')\n"
+  }
+}

@@ -1,0 +1,33 @@
+# {{ project_name }}
+
+{{ description | default('A Streamlit application built with StreamlitForge.') }}
+
+## Getting Started
+
+```bash
+cd {{ project_name }}
+{% if use_venv %}
+source .venv/bin/activate
+{% endif %}
+pip install -r requirements.txt
+streamlit run src/app.py --server.port {{ port | default(8501) }}
+```
+
+## Project Structure
+
+```
+{{ project_name }}/
+├── src/
+│   └── app.py          # Main application
+├── data/               # Data files
+├── tests/              # Test files
+├── .streamlit/
+│   └── config.toml     # Streamlit configuration
+├── requirements.txt    # Dependencies
+└── README.md
+```
+
+## Built With
+
+- [Streamlit](https://streamlit.io/) - The fastest way to build data apps
+- [StreamlitForge](https://github.com/streamlitforge) - AI-Powered Streamlit Builder

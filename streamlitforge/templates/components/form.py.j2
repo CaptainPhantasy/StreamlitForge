@@ -1,0 +1,35 @@
+"""Streamlit Form Component — {{ component_name }}"""
+import streamlit as st
+
+
+def render_{{ component_name }}():
+    """Render a form with validation."""
+    st.subheader("{{ title | default('Form') }}")
+
+    with st.form("{{ component_name }}_form"):
+        {% for field in fields %}
+        {% if field.type == 'text' %}
+        {{ field.name }} = st.text_input("{{ field.label }}", value="{{ field.default | default('') }}")
+        {% elif field.type == 'number' %}
+        {{ field.name }} = st.number_input("{{ field.label }}", value={{ field.default | default(0) }})
+        {% elif field.type == 'select' %}
+        {{ field.name }} = st.selectbox("{{ field.label }}", {{ field.options | default([]) }})
+        {% elif field.type == 'checkbox' %}
+        {{ field.name }} = st.checkbox("{{ field.label }}", value={{ field.default | default(False) }})
+        {% elif field.type == 'textarea' %}
+        {{ field.name }} = st.text_area("{{ field.label }}", value="{{ field.default | default('') }}")
+        {% elif field.type == 'date' %}
+        {{ field.name }} = st.date_input("{{ field.label }}")
+        {% endif %}
+        {% endfor %}
+
+        submitted = st.form_submit_button("{{ submit_label | default('Submit') }}")
+
+        if submitted:
+            st.success("Form submitted successfully!")
+            return {
+                {% for field in fields %}
+                "{{ field.name }}": {{ field.name }},
+                {% endfor %}
+            }
+    return None

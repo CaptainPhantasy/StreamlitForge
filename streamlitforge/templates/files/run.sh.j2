@@ -1,0 +1,8 @@
+#!/bin/bash
+# Run {{ project_name }} Streamlit app
+set -e
+cd "$(dirname "$0")"
+{% if use_venv %}
+source .venv/bin/activate
+{% endif %}
+streamlit run src/app.py --server.port {{ port | default(8501) }}

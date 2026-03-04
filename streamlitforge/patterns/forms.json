@@ -1,0 +1,14 @@
+{
+  "basic_form": {
+    "triggers": ["form", "input", "submit", "user"],
+    "template": "import streamlit as st\n\nwith st.form('my_form'):\n    name = st.text_input('Name')\n    email = st.text_input('Email')\n    submitted = st.form_submit_button('Submit')\n    if submitted:\n        st.success(f'Hello {name}! Email: {email}')\n"
+  },
+  "contact_form": {
+    "triggers": ["contact", "form", "message", "feedback"],
+    "template": "import streamlit as st\n\nst.subheader('Contact Us')\nwith st.form('contact_form'):\n    name = st.text_input('Your Name')\n    email = st.text_input('Your Email')\n    subject = st.text_input('Subject')\n    message = st.text_area('Message')\n    submitted = st.form_submit_button('Send Message')\n    if submitted:\n        st.success('Message sent!')\n"
+  },
+  "settings_form": {
+    "triggers": ["settings", "preferences", "config", "options"],
+    "template": "import streamlit as st\n\nst.subheader('Settings')\nwith st.form('settings_form'):\n    theme = st.selectbox('Theme', ['Light', 'Dark', 'Auto'])\n    notifications = st.checkbox('Enable notifications', value=True)\n    page_size = st.slider('Items per page', 10, 100, 25)\n    submitted = st.form_submit_button('Save Settings')\n    if submitted:\n        st.success('Settings saved!')\n"
+  }
+}
