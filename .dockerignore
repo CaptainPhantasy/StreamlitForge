@@ -1,0 +1,63 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv
+venv/
+ENV/
+env/
+
+# Testing
+.pytest_cache
+.coverage
+htmlcov/
+.tox/
+.hypothesis/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*.sublime-*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+
+# Security files (should not be in image)
+.env
+*.pem
+*.key
+secrets.toml
+.streamlit/secrets.toml
+
+# Documentation
+docs/
+*.md
+!README.md
+
+# Test results
+test_results*.txt
+security_*.json
+security_*.txt
+
+# Temporary files
+*.log
+*.tmp
+*.bak
+
+# Backup files
+*.backup
+*~

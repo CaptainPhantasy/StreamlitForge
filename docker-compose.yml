@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  streamlitforge:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: streamlitforge:latest
+    container_name: streamlitforge
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./projects:/app/projects
+      - streamlitforge-data:/home/appuser/.streamlitforge
+    environment:
+      - STREAMLITFORGE_LOG_LEVEL=INFO
+    command: streamlitforge --help
+
+  # Development service with hot reload
+  streamlitforge-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: streamlitforge:dev
+    container_name: streamlitforge-dev
+    ports:
+      - "8502:8501"
+    volumes:
+      - .:/app
+      - streamlitforge-data:/home/appuser/.streamlitforge
+    environment:
+      - STREAMLITFORGE_LOG_LEVEL=DEBUG
+    command: python -m streamlitforge.cli --debug --help
+
+  # Test runner service
+  streamlitforge-test:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: streamlitforge:test
+    container_name: streamlitforge-test
+    volumes:
+      - .:/app
+    command: python -m pytest streamlitforge/tests/ -v
+
+volumes:
+  streamlitforge-data:

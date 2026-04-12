@@ -1,0 +1,40 @@
+# Bandit security scanner configuration
+# https://bandit.readthedocs.io/
+
+targets:
+  - streamlitforge
+  - app
+
+exclude_dirs:
+  - streamlitforge/tests
+  - .venv
+  - venv
+  - __pycache__
+  - build
+  - dist
+  - .git
+  - .tox
+  - htmlcov
+
+# Severity levels to check
+severity: MEDIUM
+
+# Confidence levels to check
+confidence: MEDIUM
+
+# Specific checks to skip (comment out to enable)
+skips:
+  # These are acceptable in tests
+  - B101  # assert_used
+  - B102  # exec_used
+  # These are warnings about common patterns
+  - B104  # bind_all_interfaces
+  # This is for container images
+  - B105  # hardcoded_password_string
+  # These are for file operations
+  - B601  # paramiko_calls
+  - B602  # subprocess_popen
+  # This is for database calls
+  - B603  # subprocess_run
+  # This is for URL parsing
+  - B605  # start_process_with_a_shell

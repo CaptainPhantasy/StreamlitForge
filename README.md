@@ -1,17 +1,43 @@
 # StreamlitForge
 
+## Overview
+
 AI-Powered Streamlit Application Builder CLI
 
 StreamlitForge is a robust CLI tool for building Streamlit applications with AI assistance. It provides deterministic port management, template scaffolding, LLM integration, and knowledge base for Streamlit best practices.
 
-## Features
+**Current Status:** Phase 2 Complete (Foundation & Hardening)  
+**Version:** 0.1.0  
+**Last Updated:** 2026-03-04
 
-- **Deterministic Port Management**: Same project always gets the same port via path hashing
-- **Project Scaffolding**: Create projects with one command
-- **LLM Integration**: Support for multiple providers (OpenRouter, Ollama, Groq)
-- **Knowledge Base**: Built-in Streamlit examples and patterns
-- **Template System**: Ready-to-use templates for common use cases
-- **Offline Support**: Works without API keys (Ollama, etc.)
+---
+
+## ✨ Features
+
+- **✓ Foundation Complete:**
+  - Deterministic Port Management: Same project always gets the same port via path hashing
+  - Project Scaffolding: Create projects with one command
+  - LLM Integration: Support for multiple providers (OpenRouter, Ollama, Groq)
+  - Knowledge Base: Built-in Streamlit examples and patterns
+  - Template System: Ready-to-use templates for common use cases
+  - Offline Support: Works without API keys (Ollama, etc.)
+  - Logging System: Proper logging configuration
+  - Security Scanning: bandit, safety, pip-audit integration
+  - Docker Setup: Containerized deployment ready
+
+- **✓ Hardening Complete:**
+  - Integration Tests: End-to-end testing framework
+  - Dependency Pinning: All versions locked to exact versions
+  - Release Workflow: Automated PyPI publishing
+  - Pre-commit Hooks: Code quality enforcement
+
+- **Planned:**
+  - Enhanced templates (more components, layouts)
+  - Database integration patterns
+  - Authentication templates
+  - Streaming support
+  - Multi-language support
+  - Web UI for configuration
 
 ## Installation
 

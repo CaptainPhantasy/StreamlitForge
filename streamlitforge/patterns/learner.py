@@ -2,11 +2,15 @@
 
 import ast
 import json
+import logging
 import re
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 import importlib.resources
+
+# Configure logger
+logger = logging.getLogger(__name__)
 
 
 # Built-in pattern files to load on initialization
@@ -57,7 +61,9 @@ class PatternLearner:
                             "usage_count": 0,
                         }
                 except (json.JSONDecodeError, OSError) as e:
-                    print(f"Warning: Could not load pattern file {filepath}: {e}")
+                    logger.warning(
+                        f"Could not load pattern file {filepath}: {e}"
+                    )
     
     def get_builtin_pattern_count(self) -> int:
         """Return number of built-in patterns loaded."""
