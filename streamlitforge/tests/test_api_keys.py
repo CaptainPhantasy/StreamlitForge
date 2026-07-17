@@ -3,13 +3,34 @@
 import os
 import tempfile
 import unittest
+from contextlib import contextmanager
 from pathlib import Path
 
 from streamlitforge.core.api_keys import APIKeyManager
 
 
+@contextmanager
+def _isolated_env():
+    """Temporarily clear all provider env vars so tests don't read host state."""
+    env_vars = [v for v in APIKeyManager.ENV_MAPPINGS.values()]
+    saved = {}
+    for var in env_vars:
+        saved[var] = os.environ.pop(var, None)
+    try:
+        yield
+    finally:
+        for var, val in saved.items():
+            if val is not None:
+                os.environ[var] = val
+            else:
+                os.environ.pop(var, None)
+
+
 class TestAPIKeyManagerInit(unittest.TestCase):
     def setUp(self):
+        self._env_ctx = _isolated_env()
+        self._env_ctx.__enter__()
+        self.addCleanup(self._env_ctx.__exit__, None, None, None)
         self.tmp = tempfile.mkdtemp()
         self.secrets_path = os.path.join(self.tmp, "secrets.toml")
 
@@ -31,6 +52,9 @@ class TestAPIKeyManagerInit(unittest.TestCase):
 
 class TestGetSetRemove(unittest.TestCase):
     def setUp(self):
+        self._env_ctx = _isolated_env()
+        self._env_ctx.__enter__()
+        self.addCleanup(self._env_ctx.__exit__, None, None, None)
         self.tmp = tempfile.mkdtemp()
         self.secrets_path = os.path.join(self.tmp, "secrets.toml")
         self.mgr = APIKeyManager(secrets_path=self.secrets_path)
@@ -72,6 +96,9 @@ class TestGetSetRemove(unittest.TestCase):
 
 class TestPersistence(unittest.TestCase):
     def setUp(self):
+        self._env_ctx = _isolated_env()
+        self._env_ctx.__enter__()
+        self.addCleanup(self._env_ctx.__exit__, None, None, None)
         self.tmp = tempfile.mkdtemp()
         self.secrets_path = os.path.join(self.tmp, "secrets.toml")
 
@@ -171,6 +198,9 @@ class TestDotEnvLoading(unittest.TestCase):
 
 class TestSecretsTomlReading(unittest.TestCase):
     def setUp(self):
+        self._env_ctx = _isolated_env()
+        self._env_ctx.__enter__()
+        self.addCleanup(self._env_ctx.__exit__, None, None, None)
         self.tmp = tempfile.mkdtemp()
         self.secrets_path = os.path.join(self.tmp, "secrets.toml")
 
@@ -187,6 +217,9 @@ class TestSecretsTomlReading(unittest.TestCase):
 
 class TestTestKey(unittest.TestCase):
     def setUp(self):
+        self._env_ctx = _isolated_env()
+        self._env_ctx.__enter__()
+        self.addCleanup(self._env_ctx.__exit__, None, None, None)
         self.tmp = tempfile.mkdtemp()
         self.secrets_path = os.path.join(self.tmp, "secrets.toml")
         self.mgr = APIKeyManager(secrets_path=self.secrets_path)

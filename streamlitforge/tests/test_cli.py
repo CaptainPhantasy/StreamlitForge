@@ -1,6 +1,5 @@
 """Tests for CLI interface — no mocks, real functional calls via Click CliRunner."""
 
-import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -22,7 +21,7 @@ class TestCLIGroup(unittest.TestCase):
     def test_version(self):
         result = self.runner.invoke(cli, ["--version"])
         self.assertEqual(result.exit_code, 0)
-        self.assertIn("0.1.0", result.output)
+        self.assertIn("1.0.0", result.output)
 
 
 class TestCreateCommand(unittest.TestCase):

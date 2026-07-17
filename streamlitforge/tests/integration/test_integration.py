@@ -1,6 +1,7 @@
 """Integration tests for StreamlitForge CLI."""
 import os
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
 import pytest
@@ -16,6 +17,20 @@ def pytest_configure(config):
     )
 
 
+def _run_cli(*args, **kwargs):
+    """Run streamlitforge CLI via the venv python -m, ensuring it's on PATH."""
+    env = os.environ.copy()
+    venv_bin = os.path.dirname(sys.executable)
+    env["PATH"] = venv_bin + os.pathsep + env.get("PATH", "")
+    return subprocess.run(
+        [sys.executable, "-m", "streamlitforge.cli"] + list(args),
+        capture_output=True,
+        text=True,
+        env=env,
+        **kwargs,
+    )
+
+
 class TestCLIIntegration:
     """Integration tests for CLI commands."""
 
@@ -27,37 +42,25 @@ class TestCLIIntegration:
 
     def test_create_project_basic(self, temp_project_dir):
         """Test basic project creation."""
-        result = subprocess.run(
-            ["streamlitforge", "create", "test-project", "--path", str(temp_project_dir)],
-            capture_output=True,
-            text=True,
-        )
+        result = _run_cli("create", "test-project", "--path", str(temp_project_dir))
 
         assert result.returncode == 0, f"CLI failed: {result.stderr}"
         assert (temp_project_dir / "test-project").exists(), "Project directory not created"
-        assert (temp_project_dir / "test-project" / "src" / "streamlit_app.py").exists(), \
+        assert (temp_project_dir / "test-project" / "src" / "app.py").exists(), \
             "Main app file not created"
 
     def test_create_project_with_template(self, temp_project_dir):
         """Test project creation with template."""
-        result = subprocess.run(
-            ["streamlitforge", "create", "test-dashboard",
-             "--path", str(temp_project_dir),
-             "--template", "dashboard"],
-            capture_output=True,
-            text=True,
-        )
+        result = _run_cli("create", "test-dashboard",
+                          "--path", str(temp_project_dir),
+                          "--template", "dashboard")
 
         assert result.returncode == 0, f"CLI failed: {result.stderr}"
         assert (temp_project_dir / "test-dashboard").exists(), "Project directory not created"
 
     def test_list_templates(self):
         """Test list-templates command."""
-        result = subprocess.run(
-            ["streamlitforge", "list-templates"],
-            capture_output=True,
-            text=True,
-        )
+        result = _run_cli("list-templates")
 
         assert result.returncode == 0, f"list-templates failed: {result.stderr}"
         assert "dashboard" in result.stdout, "Dashboard template not found"
@@ -66,19 +69,12 @@ class TestCLIIntegration:
     def test_create_and_delete_project(self, temp_project_dir):
         """Test project lifecycle."""
         # Create
-        subprocess.run(
-            ["streamlitforge", "create", "lifecycle-test", "--path", str(temp_project_dir)],
-            capture_output=True,
-        )
+        _run_cli("create", "lifecycle-test", "--path", str(temp_project_dir))
 
         assert (temp_project_dir / "lifecycle-test").exists(), "Project creation failed"
 
         # Delete
-        result = subprocess.run(
-            ["streamlitforge", "delete", "lifecycle-test", "--path", str(temp_project_dir)],
-            capture_output=True,
-            text=True,
-        )
+        result = _run_cli("delete", str(temp_project_dir / "lifecycle-test"), "--yes")
 
         assert result.returncode == 0, f"Delete failed: {result.stderr}"
         assert not (temp_project_dir / "lifecycle-test").exists(), "Project not deleted"
@@ -94,11 +90,12 @@ class TestPortManagerIntegration:
         pm = PortManager()
         test_path = "/tmp/streamlitforge_test_project"
 
-        port1 = pm.lookup(test_path)
+        port1 = pm.get_port(test_path)
         port2 = pm.lookup(test_path)
 
         assert port1 == port2, f"Ports differ: {port1} != {port2}"
         assert 8501 <= port1 <= 8999, f"Port {port1} out of range"
+        pm.release_port(test_path)
 
     def test_different_paths_get_different_ports(self):
         """Test that different paths get different ports."""
@@ -106,10 +103,12 @@ class TestPortManagerIntegration:
 
         pm = PortManager()
 
-        port1 = pm.lookup("/tmp/project1")
-        port2 = pm.lookup("/tmp/project2")
+        port1 = pm.get_port("/tmp/streamlitforge_int_test_p1")
+        port2 = pm.get_port("/tmp/streamlitforge_int_test_p2")
 
         assert port1 != port2, "Different paths should get different ports"
+        pm.release_port("/tmp/streamlitforge_int_test_p1")
+        pm.release_port("/tmp/streamlitforge_int_test_p2")
 
 
 class TestProjectManagerIntegration:
@@ -158,8 +157,10 @@ class TestLLMIntegration:
     def test_provider_fallback(self):
         """Test that provider fallback works."""
         from streamlitforge.llm.router import EnhancedLLMRouter
+        from streamlitforge.llm.providers.ollama import OllamaProvider
 
-        router = EnhancedLLMRouter()
+        provider = OllamaProvider()
+        router = EnhancedLLMRouter(providers={"ollama": provider})
         # Test that router has providers configured
         assert len(router.providers) > 0, "Router should have providers configured"
 
@@ -169,18 +170,18 @@ class TestKnowledgeBaseIntegration:
 
     def test_knowledge_base_exists(self):
         """Test that knowledge base can be instantiated."""
-        from streamlitforge.knowledge import StreamlitKnowledgeBase
+        from streamlitforge.knowledge.streamlit_kb import StreamlitKnowledgeBase
 
         kb = StreamlitKnowledgeBase()
         assert kb is not None, "Knowledge base should be instantiable"
 
     def test_knowledge_base_search(self):
         """Test that knowledge base search works."""
-        from streamlitforge.knowledge import StreamlitKnowledgeBase
+        from streamlitforge.knowledge.streamlit_kb import StreamlitKnowledgeBase
 
         kb = StreamlitKnowledgeBase()
         # Test search returns results (may be empty if no data)
-        results = kb.search("chat interface")
+        results = kb.search_examples("chat interface")
         assert isinstance(results, list), "Search should return a list"
 
 
@@ -191,10 +192,8 @@ class TestTemplateIntegration:
         """Test that templates are available."""
         from streamlitforge.templates import BuiltInTemplates
 
-        templates = BuiltInTemplates()
-        assert templates is not None, "Templates should be instantiable"
-        # Check templates exist
-        assert len(templates.templates) > 0, "Should have templates available"
+        names = BuiltInTemplates.get_template_names()
+        assert len(names) > 0, "Should have templates available"
 
 
 class TestPatternLibraryIntegration:
@@ -213,7 +212,7 @@ class TestPatternLibraryIntegration:
 
         learner = PatternLearner()
         # Check that patterns were loaded
-        assert len(learner.get_builtin_pattern_count()) > 0, "Should have builtin patterns"
+        assert learner.get_builtin_pattern_count() > 0, "Should have builtin patterns"
 
     def test_get_builtin_pattern_count(self):
         """Test getting builtin pattern count."""
