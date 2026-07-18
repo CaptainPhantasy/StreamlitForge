@@ -7,7 +7,6 @@ import re
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
-import importlib.resources
 
 # Configure logger
 logger = logging.getLogger(__name__)
@@ -278,3 +277,24 @@ class PatternLearner:
         """Total pattern count including built-in patterns."""
         user_count = len(list(self.library_path.glob("pattern_*.json")))
         return user_count + len(self._builtin_patterns)
+
+    def get_user_pattern_count(self) -> int:
+        """Return the number of user-learned patterns only."""
+        return len(list(self.library_path.glob("pattern_*.json")))
+
+    def list_user_patterns(self) -> List[Dict[str, Any]]:
+        """List only user-learned patterns, excluding builtins."""
+        patterns = []
+        for filepath in sorted(self.library_path.glob("pattern_*.json")):
+            try:
+                p = json.loads(filepath.read_text())
+                patterns.append({
+                    "pattern_id": p.get("pattern_id"),
+                    "name": p.get("name"),
+                    "triggers": p.get("triggers", []),
+                    "usage_count": p.get("usage_count", 0),
+                    "source": "user",
+                })
+            except (json.JSONDecodeError, OSError):
+                continue
+        return patterns

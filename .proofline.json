@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "gates": [
+    {
+      "name": "python-recovery-checks",
+      "command": [
+        "sh",
+        "-c",
+        "tmp=$(mktemp -d); /Volumes/Storage/StreamlitForge/.venv/bin/python -m venv \"$tmp\" && \"$tmp/bin/pip\" install -q --upgrade pip && \"$tmp/bin/pip\" install -q -e . pytest ruff && \"$tmp/bin/python\" -m pytest streamlitforge/tests -q && \"$tmp/bin/ruff\" check streamlitforge/patterns/learner.py streamlitforge/tests/integration/test_integration.py streamlitforge/tests/performance/test_performance.py streamlitforge/tests/test_api_keys.py streamlitforge/tests/test_cli.py streamlitforge/tests/test_patterns.py; code=$?; rm -rf \"$tmp\"; exit $code"
+      ],
+      "required": true
+    }
+  ],
+  "include": [
+    ".proofline.json",
+    "streamlitforge/patterns/learner.py",
+    "streamlitforge/tests/**"
+  ],
+  "deny": [
+    ".env",
+    ".env.*",
+    "*.pem",
+    "*.key",
+    ".venv/**",
+    "node_modules/**",
+    ".git/**",
+    ".harness/**",
+    ".pi/**",
+    ".omp/**",
+    ".supercache/**",
+    ".floyd/**"
+  ],
+  "baseBranch": "autonomously-fixed",
+  "publish": true
+}

@@ -16,7 +16,7 @@ class TestPatternLearnerInit(unittest.TestCase):
         self.lib_path = os.path.join(self.tmp, "patterns")
 
     def test_creates_library_dir(self):
-        pl = PatternLearner(library_path=self.lib_path)
+        PatternLearner(library_path=self.lib_path)
         self.assertTrue(Path(self.lib_path).is_dir())
 
     def test_default_min_examples(self):
@@ -27,9 +27,9 @@ class TestPatternLearnerInit(unittest.TestCase):
         pl = PatternLearner(library_path=self.lib_path, min_examples=5)
         self.assertEqual(pl.min_examples, 5)
 
-    def test_initial_pattern_count_zero(self):
+    def test_initial_user_pattern_count_zero(self):
         pl = PatternLearner(library_path=self.lib_path)
-        self.assertEqual(pl.get_pattern_count(), 0)
+        self.assertEqual(pl.get_user_pattern_count(), 0)
 
 
 class TestExtractTriggers(unittest.TestCase):
@@ -100,7 +100,7 @@ class TestRecordSuccess(unittest.TestCase):
             prompt="create a dashboard",
             generated_code="import streamlit as st\nst.title('Dashboard')\n",
         )
-        self.assertEqual(self.pl.get_pattern_count(), 1)
+        self.assertEqual(self.pl.get_user_pattern_count(), 1)
 
     def test_pattern_file_has_json(self):
         self.pl.record_success(
@@ -152,7 +152,7 @@ class TestRecordSuccess(unittest.TestCase):
             prompt="create a form xyz",
             generated_code="import streamlit as st\nst.form('form1')\n",
         )
-        self.assertEqual(self.pl.get_pattern_count(), 2)
+        self.assertEqual(self.pl.get_user_pattern_count(), 2)
 
 
 class TestFindPattern(unittest.TestCase):
@@ -190,7 +190,7 @@ class TestListPatterns(unittest.TestCase):
         self.pl = PatternLearner(library_path=self.lib_path)
 
     def test_empty_list_initially(self):
-        patterns = self.pl.list_patterns()
+        patterns = self.pl.list_user_patterns()
         self.assertEqual(patterns, [])
 
     def test_lists_created_patterns(self):
@@ -198,7 +198,7 @@ class TestListPatterns(unittest.TestCase):
             prompt="make a table",
             generated_code="import streamlit as st\nst.table([1,2,3])\n",
         )
-        patterns = self.pl.list_patterns()
+        patterns = self.pl.list_user_patterns()
         self.assertEqual(len(patterns), 1)
         self.assertIn("pattern_id", patterns[0])
         self.assertIn("name", patterns[0])
@@ -208,7 +208,7 @@ class TestListPatterns(unittest.TestCase):
     def test_pattern_count_matches_list(self):
         self.pl.record_success(prompt="a", generated_code="import streamlit as st\nst.title('A')\n")
         self.pl.record_success(prompt="b xyz", generated_code="import streamlit as st\nst.write('B')\n")
-        self.assertEqual(self.pl.get_pattern_count(), len(self.pl.list_patterns()))
+        self.assertEqual(self.pl.get_user_pattern_count(), len(self.pl.list_user_patterns()))
 
 
 class TestExamplePatterns(unittest.TestCase):
